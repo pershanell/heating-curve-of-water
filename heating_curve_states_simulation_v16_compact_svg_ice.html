@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Heating Curve & States of Matter Simulation</title>
+<style>
+  :root{
+    --bg0:#06101c;
+    --bg1:#0b1c2f;
+    --panel:#0b1726;
+    --panel2:#0e2136;
+    --line:#6e8aab;
+    --soft:#9db7d4;
+    --text:#f4f8ff;
+    --muted:#b8c5d8;
+    --blue:#54a5ff;
+    --green:#7ce05e;
+    --orange:#ffad32;
+    --red:#ff4444;
+    --purple:#bb5cff;
+  }
+
+  *{box-sizing:border-box}
+
+  body{
+    margin:0;
+    font-family: Calibri, Arial, sans-serif;
+    background:
+      radial-gradient(circle at 18% 20%, rgba(83,134,220,.25), transparent 34%),
+      radial-gradient(circle at 86% 12%, rgba(112,72,210,.20), transparent 30%),
+      linear-gradient(180deg, var(--bg1), var(--bg0));
+    color:var(--text);
+    overflow-x:hidden;
+  }
+
+  .shell{
+    width:min(1500px,100vw);
+    margin:0 auto;
+    min-height:100vh;
+    padding:14px 18px 18px;
+  }
+
+  .topbar{
+    height:58px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:1px solid rgba(152,181,219,.22);
+  }
+
+  .title{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    font-size:32px;
+    font-weight:800;
+    letter-spacing:.2px;
+  }
+
+  .title .flameIcon{font-size:34px}
+
+  .topButtons{
+    display:flex;
+    gap:14px;
+  }
+
+  button{
+    border:1px solid rgba(157,190,235,.45);
+    background:linear-gradient(180deg,#2b61cc,#173a83);
+    color:#fff;
+    border-radius:12px;
+    font-size:20px;
+    font-weight:700;
+    padding:10px 22px;
+    cursor:pointer;
+    box-shadow:0 0 16px rgba(74,133,255,.25) inset, 0 4px 12px rgba(0,0,0,.25);
+  }
+
+  button.secondary{
+    background:linear-gradient(180deg,#17304f,#0d1d31);
+  }
+
+  .main{
+    display:grid;
+    grid-template-columns: 520px 1fr;
+    grid-template-rows: 290px 335px 145px;
+    gap:12px;
+    padding-top:12px;
+  }
+
+  .panel{
+    background:linear-gradient(180deg, rgba(15,35,58,.94), rgba(6,16,28,.96));
+    border:1px solid rgba(129,166,214,.42);
+    border-radius:16px;
+    box-shadow:0 8px 24px rgba(0,0,0,.32), inset 0 0 28px rgba(63,135,220,.06);
+    position:relative;
+    overflow:hidden;
+  }
+
+  #apparatusPanel{
+    grid-row:1 / span 2;
+  }
+
+  .rightTop{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:12px;
+  }
+
+  #graphPanel{
+    grid-column:2;
+    grid-row:2;
+  }
+
+  #controlsPanel{
+    grid-column:1 / span 2;
+    grid-row:3;
+    padding:10px 18px;
+    overflow:hidden;
+  }
+
+  .heatControl{
+    position:absolute;
+    left:18px;
+    bottom:18px;
+    z-index:5;
+    width:76px;
+    height:154px;
+    display:grid;
+    grid-template-rows:auto 1fr auto;
+    justify-items:center;
+    align-items:center;
+    padding:4px 5px;
+    border-radius:13px;
+    background:rgba(4,13,24,.72);
+    border:1px solid rgba(124,167,225,.38);
+    box-shadow:0 4px 14px rgba(0,0,0,.28);
+  }
+
+  .heatControl .heatLabel{
+    font-size:13px;
+    font-weight:900;
+    letter-spacing:.5px;
+    color:#fff;
+  }
+
+  .heatControl input[type="range"]{
+    writing-mode:vertical-lr;
+    direction:rtl;
+    width:26px;
+    height:108px;
+    margin:0;
+    accent-color:#ff6b35;
+  }
+
+  .card{
+    border:1px solid rgba(124,167,225,.35);
+    border-radius:13px;
+    background:rgba(4,13,24,.55);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:10px;
+    min-width:0;
+  }
+
+  .card h3{
+    margin:0 0 8px;
+    font-size:20px;
+    color:#fff;
+  }
+
+  .bigValue{
+    font-size:30px;
+    font-weight:800;
+    color:var(--orange);
+  }
+
+  .stateValue{
+    font-size:26px;
+    font-weight:800;
+  }
+
+  .small{
+    font-size:14px;
+    fill:var(--muted);
+  }
+
+  .axisLabel{
+    font-size:17px;
+    fill:#fff;
+    font-weight:700;
+  }
+
+  svg{width:100%;height:100%;display:block}
+
+  .panelTitle{
+    position:absolute;
+    top:10px;
+    left:18px;
+    right:18px;
+    text-align:center;
+    font-size:21px;
+    font-weight:800;
+    z-index:3;
+  }
+
+  #particlePanel .panelTitle{
+    background:linear-gradient(180deg,#2165dc,#153780);
+    width:max-content;
+    margin:auto;
+    padding:9px 24px;
+    border-radius:10px;
+    border:1px solid rgba(150,194,255,.55);
+    left:0; right:0;
+  }
+
+  .legend{
+    padding:24px 24px;
+    font-size:20px;
+    line-height:1.35;
+  }
+
+  .legend h3{
+    margin:0 0 20px;
+  }
+
+  .legendRow{
+    display:grid;
+    grid-template-columns:32px 1fr;
+    gap:12px;
+    margin:18px 0;
+    align-items:start;
+  }
+
+  .dot{
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    box-shadow:inset -7px -7px 12px rgba(0,0,0,.35), inset 5px 5px 8px rgba(255,255,255,.5);
+  }
+
+  .dot.blue{background:#2d7cff}
+  .dot.green{background:#6dda5a}
+  .dot.red{background:#ee453c}
+
+  .sliderLine{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
+  }
+
+  input[type="range"]{
+    width:100%;
+    accent-color:#ff6b35;
+  }
+
+  .flameText{
+    font-size:28px;
+    font-weight:800;
+  }
+
+  .controlHelp{
+    color:#e8eef8;
+    font-size:17px;
+    text-align:center;
+    line-height:1.25;
+    margin-top:5px;
+  }
+
+  .progress{
+    height:100%;
+    border-top:1px solid rgba(126,171,230,.35);
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    align-items:start;
+    text-align:center;
+    font-size:17px;
+    padding-top:15px;
+    position:relative;
+  }
+
+  .progress:before{
+    content:"";
+    position:absolute;
+    left:9%;
+    right:9%;
+    top:25px;
+    height:2px;
+    background:rgba(215,232,250,.75);
+  }
+
+  .stage{
+    position:relative;
+    z-index:1;
+    color:#b9c7d9;
+    line-height:1.22;
+  }
+
+  .stage:before{
+    content:"";
+    display:block;
+    margin:0 auto 8px;
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:#56697f;
+    border:2px solid #d5e5f5;
+  }
+
+  .stage.active{font-weight:900}
+  .stage.blue.active{color:#3d8cff}
+  .stage.teal.active{color:#26d7d9}
+  .stage.lime.active{color:#a9dc22}
+  .stage.orange.active{color:#ff9e27}
+  .stage.red.active{color:#ff4a43}
+  .stage.blue.active:before{background:#3d8cff}
+  .stage.teal.active:before{background:#26d7d9}
+  .stage.lime.active:before{background:#a9dc22}
+  .stage.orange.active:before{background:#ff9e27}
+  .stage.red.active:before{background:#ff4a43}
+
+  .activeGraphLabel{
+    font-size:18px;
+    font-weight:800;
+    fill:#fff;
+  }
+
+  /* Tablet landscape keeps the clean two-column desktop arrangement. */
+  @media(max-width:1180px) and (min-width:760px){
+    .shell{padding:10px}
+    .main{
+      grid-template-columns:minmax(390px,44%) minmax(0,1fr);
+      grid-template-rows:270px 315px 140px;
+      gap:10px;
+    }
+    .title{font-size:27px}
+    button{font-size:17px;padding:8px 16px}
+  }
+
+  /* Phones and narrow portrait tablets stack the simulation vertically. */
+  @media(max-width:759px){
+    body{overflow-x:hidden}
+    .shell{width:100%;padding:8px}
+    .topbar{height:auto;min-height:56px;gap:8px;align-items:flex-start}
+    .title{font-size:21px;line-height:1.1;gap:6px;padding-top:7px}
+    .title .flameIcon{font-size:23px}
+    .topButtons{gap:6px}
+    button{font-size:15px;padding:8px 11px;border-radius:9px}
+    .main{
+      display:grid;
+      grid-template-columns:1fr;
+      grid-template-rows:auto auto auto auto;
+      gap:9px;
+      padding-top:9px;
+    }
+    #apparatusPanel{grid-row:auto;height:min(650px,118vw);min-height:500px}
+    .rightTop{grid-row:auto;height:280px}
+    #graphPanel{grid-column:auto;grid-row:auto;height:330px;overflow-x:auto}
+    #graphPanel svg{min-width:700px}
+    #controlsPanel{grid-column:auto;grid-row:auto;height:126px;padding:7px 5px;overflow-x:auto}
+    .progress{min-width:690px;font-size:14px;padding-top:12px}
+    .progress:before{top:21px}
+    .stage:before{width:15px;height:15px;margin-bottom:6px}
+    .heatControl{left:7px;bottom:9px;width:60px;height:146px}
+    .heatControl input[type="range"]{height:101px}
+  }
+
+  @media(max-width:480px){
+    #apparatusPanel{height:590px;min-height:590px}
+    .rightTop{height:250px}
+    #controlsPanel{height:112px}
+    .stage{line-height:1.15}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div class="title"><span class="flameIcon">🔥</span>Heating Curve & States of Matter</div>
+    <div class="topButtons">
+      <button id="resetBtn">↻ Reset</button>
+      <button id="pauseBtn" class="secondary">Pause</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <section id="apparatusPanel" class="panel">
+      <div class="heatControl" aria-label="Heat intensity control">
+        <div class="heatLabel">HIGH</div>
+        <input id="flameSlider" type="range" min="0" max="100" value="35" aria-label="Heat intensity">
+        <div class="heatLabel">LOW</div>
+      </div>
+      <svg id="apparatusSvg" viewBox="0 0 520 650">
+        <defs>
+          <linearGradient id="glassGrad" x1="0" x2="1">
+            <stop offset="0" stop-color="#d7ecff" stop-opacity=".55"/>
+            <stop offset=".18" stop-color="#ffffff" stop-opacity=".18"/>
+            <stop offset=".55" stop-color="#d8edff" stop-opacity=".08"/>
+            <stop offset=".82" stop-color="#ffffff" stop-opacity=".22"/>
+            <stop offset="1" stop-color="#cbe8ff" stop-opacity=".55"/>
+          </linearGradient>
+
+          <linearGradient id="waterGrad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#9cd9ff" stop-opacity=".82"/>
+            <stop offset="1" stop-color="#3a99e3" stop-opacity=".52"/>
+          </linearGradient>
+
+          <radialGradient id="iceFace" cx=".25" cy=".15" r=".9">
+            <stop offset="0" stop-color="#ffffff" stop-opacity=".95"/>
+            <stop offset=".25" stop-color="#d9f0ff" stop-opacity=".92"/>
+            <stop offset=".65" stop-color="#93c8f4" stop-opacity=".76"/>
+            <stop offset="1" stop-color="#4c81c2" stop-opacity=".86"/>
+          </radialGradient>
+
+          <linearGradient id="flameBlue" x1="0" x2="0" y1="1" y2="0">
+            <stop offset="0" stop-color="#063dff"/>
+            <stop offset=".45" stop-color="#18a6ff"/>
+            <stop offset="1" stop-color="#b5efff"/>
+          </linearGradient>
+
+          <filter id="softGlow">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+
+          <filter id="iceGlow">
+            <feGaussianBlur stdDeviation="1.2" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+
+          <clipPath id="beakerClip">
+            <path d="M82 96 C110 88 391 88 424 96 C430 100 426 111 415 113 L397 557 C392 585 112 585 106 557 L90 113 C78 111 75 100 82 96 Z"/>
+          </clipPath>
+        </defs>
+<g id="beakerAssembly" transform="translate(98 22) scale(0.585)">
+        <!-- beaker -->
+        <path d="M82 96 C110 88 391 88 424 96 C430 100 426 111 415 113 L397 557 C392 585 112 585 106 557 L90 113 C78 111 75 100 82 96 Z"
+              fill="url(#glassGrad)" stroke="#cfe4fa" stroke-width="3"/>
+        <ellipse cx="253" cy="105" rx="170" ry="13" fill="none" stroke="#e8f6ff" stroke-width="4" opacity=".95"/>
+        <ellipse cx="253" cy="105" rx="159" ry="8" fill="none" stroke="#8fb5d9" stroke-width="2" opacity=".8"/>
+
+        <!-- liquid clipped to beaker -->
+        <g clip-path="url(#beakerClip)">
+          <path id="water" d="M80 490 H440 V545 C418 585 88 585 66 545 V490 Z" fill="url(#waterGrad)"/>
+          <ellipse id="waterSurface" cx="253" cy="490" rx="170" ry="11" fill="#a9dfff" opacity=".76" stroke="#eaf8ff" stroke-width="2"/>
+          <g id="bubbles"></g>
+          <g id="steam"></g>
+        </g>
+
+        <!-- semi-realistic 0–125°C thermometer, split into two physical halves -->
+        <g id="thermometerGroup">
+          <g id="thermoLowerHalf">
+            <rect x="128" y="298" width="20" height="230" rx="10" fill="rgba(238,247,255,.50)" stroke="#eaf7ff" stroke-width="3"/>
+            <rect x="133" y="302" width="4" height="218" rx="2" fill="#ffffff" opacity=".42"/>
+            <line id="thermoFillLower" x1="138" y1="524" x2="138" y2="300" stroke="#ff2020" stroke-width="6" stroke-linecap="round"/>
+            <circle id="thermoBulb" cx="138" cy="539" r="16" fill="#df1919" stroke="#ffe2e2" stroke-width="3"/>
+            <circle cx="133" cy="534" r="5" fill="#ff8b8b" opacity=".60"/>
+          </g>
+          <g id="thermoUpperHalf">
+            <rect x="128" y="112" width="20" height="190" rx="10" fill="rgba(238,247,255,.50)" stroke="#eaf7ff" stroke-width="3"/>
+            <rect x="133" y="118" width="4" height="174" rx="2" fill="#ffffff" opacity=".42"/>
+            <line id="thermoFillUpper" x1="138" y1="300" x2="138" y2="300" stroke="#ff2020" stroke-width="6" stroke-linecap="round"/>
+            <path d="M128 300 L133 294 L138 301 L143 294 L148 300" fill="none" stroke="#dff2ff" stroke-width="3"/>
+          </g>
+          <g id="thermoScale" stroke="#d9e8f3" stroke-width="2" fill="#fff" font-size="14" font-weight="800">
+            <line x1="151" y1="122" x2="168" y2="122"/><text x="173" y="127">125</text>
+            <line x1="151" y1="196" x2="165" y2="196"/><text x="173" y="201">100</text>
+            <line x1="151" y1="270" x2="165" y2="270"/><text x="173" y="275">75</text>
+            <line x1="151" y1="344" x2="165" y2="344"/><text x="173" y="349">50</text>
+            <line x1="151" y1="418" x2="165" y2="418"/><text x="173" y="423">25</text>
+            <line x1="151" y1="492" x2="168" y2="492"/><text x="173" y="497">0</text>
+            <text x="174" y="146">°C</text>
+          </g>
+          <text id="thermoText" x="72" y="526" text-anchor="end" fill="#fff" font-size="16" font-weight="800">−10°C</text>
+        </g>
+
+        <!-- measuring scale -->
+        <g id="scaleMarks" stroke="#e7f4ff" stroke-width="2" fill="#fff" font-size="20" font-weight="700">
+          <text x="438" y="165">mL</text>
+          <line x1="335" y1="190" x2="390" y2="190"/><text x="452" y="197">200</text>
+          <line x1="335" y1="285" x2="390" y2="285"/><text x="452" y="292">150</text>
+          <line x1="335" y1="380" x2="390" y2="380"/><text x="452" y="387">100</text>
+          <line x1="335" y1="475" x2="390" y2="475"/><text x="452" y="482">50</text>
+          <line x1="335" y1="535" x2="390" y2="535"/><text x="452" y="542">0</text>
+          <line x1="352" y1="237" x2="382" y2="237"/>
+          <line x1="352" y1="333" x2="382" y2="333"/>
+          <line x1="352" y1="427" x2="382" y2="427"/>
+        </g>
+        <!-- Compact vector ice cubes: realistic translucent body, bevels, frost and cracks. -->
+        <g id="iceCubes" clip-path="url(#beakerClip)">
+          <defs>
+            <linearGradient id="iceTopGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#ffffff" stop-opacity=".98"/>
+              <stop offset=".42" stop-color="#dff5ff" stop-opacity=".92"/>
+              <stop offset="1" stop-color="#8bc7ed" stop-opacity=".78"/>
+            </linearGradient>
+            <linearGradient id="iceFrontGrad" x1="0" y1="0" x2=".8" y2="1">
+              <stop offset="0" stop-color="#eefaff" stop-opacity=".96"/>
+              <stop offset=".38" stop-color="#bfe8ff" stop-opacity=".88"/>
+              <stop offset="1" stop-color="#5599d2" stop-opacity=".82"/>
+            </linearGradient>
+            <linearGradient id="iceSideGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#9ed6f6" stop-opacity=".88"/>
+              <stop offset="1" stop-color="#397bb8" stop-opacity=".82"/>
+            </linearGradient>
+            <filter id="iceSoftShadow" x="-25%" y="-25%" width="150%" height="160%">
+              <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#07213d" flood-opacity=".55"/>
+            </filter>
+            <symbol id="iceCubeMaster" viewBox="0 0 84 84">
+              <g filter="url(#iceSoftShadow)">
+                <path d="M8 19 Q9 10 18 8 L63 8 Q72 9 76 17 L80 61 Q79 73 69 77 L20 78 Q9 75 7 65 Z"
+                      fill="url(#iceFrontGrad)" stroke="#e9f9ff" stroke-width="2.1"/>
+                <path d="M9 20 L19 9 L64 9 L75 18 L65 27 L20 28 Z"
+                      fill="url(#iceTopGrad)" stroke="#f6fdff" stroke-width="1.7"/>
+                <path d="M65 27 L75 18 L79 61 Q78 70 69 76 L65 66 Z"
+                      fill="url(#iceSideGrad)" stroke="#cceeff" stroke-width="1.4"/>
+                <path d="M15 31 Q20 24 31 24 L60 25 Q66 27 65 36 L62 61 Q61 68 53 70 L24 70 Q16 68 15 60 Z"
+                      fill="#dff5ff" opacity=".20"/>
+                <path d="M17 17 Q31 11 47 13" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity=".72"/>
+                <path d="M16 34 Q13 49 18 60" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity=".42"/>
+                <path d="M34 28 L39 39 L34 47 M39 39 L51 35 M50 49 L45 57 L50 65"
+                      fill="none" stroke="#6caed9" stroke-width="1.35" stroke-linecap="round" opacity=".72"/>
+                <circle cx="26" cy="39" r="2.4" fill="#ffffff" opacity=".55"/>
+                <circle cx="57" cy="55" r="1.8" fill="#ffffff" opacity=".45"/>
+                <circle cx="29" cy="62" r="1.3" fill="#ffffff" opacity=".40"/>
+              </g>
+            </symbol>
+          </defs>
+          <use id="cubeA" href="#iceCubeMaster" width="84" height="84"/>
+          <use id="cubeB" href="#iceCubeMaster" width="84" height="84"/>
+          <use id="cubeC" href="#iceCubeMaster" width="84" height="84"/>
+          <use id="cubeD" href="#iceCubeMaster" width="84" height="84"/>
+          <use id="cubeE" href="#iceCubeMaster" width="84" height="84"/>
+          <use id="cubeF" href="#iceCubeMaster" width="84" height="84"/>
+          <use id="cubeG" href="#iceCubeMaster" width="84" height="84"/>
+          <use id="cubeH" href="#iceCubeMaster" width="84" height="84"/>
+        </g>
+
+
+
+        </g>
+
+        <!-- burner -->
+        <g id="burner" transform="translate(0 16)">
+          <ellipse cx="260" cy="626" rx="92" ry="16" fill="#15191f" stroke="#6d7680"/>
+          <rect x="232" y="572" width="56" height="55" rx="10" fill="#9b7345" stroke="#e0bd7d" stroke-width="2"/>
+          <rect x="244" y="536" width="32" height="47" rx="5" fill="#a47b4c" stroke="#e0bd7d" stroke-width="2"/>
+          <rect x="228" y="526" width="64" height="18" rx="7" fill="#4d4f55" stroke="#aeb6bf"/>
+        </g>
+        <g id="flame" filter="url(#softGlow)" transform="translate(0 16)">
+          <path d="M260 527 C228 487 245 452 260 423 C278 456 304 490 260 527 Z" fill="url(#flameBlue)" opacity=".96"/>
+          <path d="M260 520 C246 493 255 469 263 450 C277 482 284 502 260 520 Z" fill="#ffffff" opacity=".8"/>
+        </g>
+
+
+        <g id="dyeGroup" opacity="0"></g>
+        <g id="popGroup" opacity="0"></g>
+      </svg>
+    </section>
+
+    <div class="rightTop">
+      <section id="particlePanel" class="panel">
+        <svg id="particleSvg" viewBox="0 0 580 290">
+          <defs>
+            <radialGradient id="particleGrad" cx=".32" cy=".25" r=".75">
+              <stop offset="0" stop-color="#ffffff"/>
+              <stop offset=".18" stop-color="#a6cdff"/>
+              <stop offset=".58" stop-color="#2f79ff"/>
+              <stop offset="1" stop-color="#092c91"/>
+            </radialGradient>
+            <filter id="particleGlow">
+              <feGaussianBlur stdDeviation="2.3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <g id="particleBox"></g>
+        
+        </svg>
+      </section>
+    </div>
+
+    <section id="graphPanel" class="panel">
+      <svg id="graphSvg" viewBox="0 0 910 335">
+        <defs>
+          <filter id="lineGlow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <text x="455" y="35" text-anchor="middle" font-size="24" font-weight="800" fill="#fff">Temperature vs Time</text>
+        <g id="graphGrid"></g>
+        <g id="graphStageTicks"></g>
+        <line x1="70" y1="282" x2="870" y2="282" stroke="#fff" stroke-width="2"/>
+        <line x1="70" y1="282" x2="70" y2="56" stroke="#fff" stroke-width="2"/>
+        <g id="curveSegments" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#lineGlow)">
+          <path id="curveSolid" stroke="#3d8cff"/>
+          <path id="curveMelting" stroke="#26d7d9"/>
+          <path id="curveLiquid" stroke="#a9dc22"/>
+          <path id="curveBoiling" stroke="#ff9e27"/>
+          <path id="curveGas" stroke="#ff4a43"/>
+        </g>
+        <circle id="livePoint" cx="70" cy="282" r="6" fill="#fff" stroke="#57a6ff" stroke-width="3"/>
+        <text x="455" y="328" text-anchor="middle" class="axisLabel">Time</text>
+        <text transform="translate(24 170) rotate(-90)" text-anchor="middle" class="axisLabel">Temperature / °C</text>
+        <g id="yLabels" fill="#fff" font-size="18"></g>
+        <text id="activeGraphLabel" x="90" y="250" class="activeGraphLabel"></text>
+      </svg>
+    </section>
+
+    <section id="controlsPanel" class="panel">
+      <div class="progress">
+        <div id="stageSolid" class="stage blue active"><strong>Solid warming</strong><br>−10°C to 0°C</div>
+        <div id="stageMelting" class="stage teal"><strong>Melting at 0°C</strong><br>Solid + Liquid</div>
+        <div id="stageLiquid" class="stage lime"><strong>Liquid warming</strong><br>0°C to 100°C</div>
+        <div id="stageBoiling" class="stage orange"><strong>Boiling at 100°C</strong><br>Liquid + Gas</div>
+        <div id="stageGas" class="stage red"><strong>Gas warming</strong><br>Above 100°C</div>
+      </div>
+    </section>
+  </div>
+</div>
+
+  <div id="endOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.56);z-index:20;align-items:center;justify-content:center;">
+    <div style="background:#0b1726;border:2px solid #ff4444;border-radius:18px;padding:28px 36px;text-align:center;box-shadow:0 0 32px rgba(255,68,68,.35);">
+      <div style="font-size:30px;font-weight:900;color:#ff5555;margin-bottom:12px;">Simulation over</div>
+      <div style="font-size:20px;color:#fff;margin-bottom:18px;">The thermometer has popped at 150°C.</div>
+      <button id="overlayResetBtn">Reset simulation</button>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const flameSlider = document.getElementById('flameSlider');
+  const resetBtn = document.getElementById('resetBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+
+  const water = document.getElementById('water');
+  const waterSurface = document.getElementById('waterSurface');
+  const bubbles = document.getElementById('bubbles');
+  const steam = document.getElementById('steam');
+  const thermoFillLower = document.getElementById('thermoFillLower');
+  const thermoFillUpper = document.getElementById('thermoFillUpper');
+  const thermoText = document.getElementById('thermoText');
+  const thermoBulb = document.getElementById('thermoBulb');
+  const thermometerGroup = document.getElementById('thermometerGroup');
+  const thermoUpperHalf = document.getElementById('thermoUpperHalf');
+  const thermoLowerHalf = document.getElementById('thermoLowerHalf');
+  const thermoScale = document.getElementById('thermoScale');
+  const popGroup = document.getElementById('popGroup');
+  const dyeGroup = document.getElementById('dyeGroup');
+  const flame = document.getElementById('flame');
+  const iceCubes = document.getElementById('iceCubes');
+  const cubeA = document.getElementById('cubeA');
+  const cubeB = document.getElementById('cubeB');
+  const cubeC = document.getElementById('cubeC');
+  const cubeD = document.getElementById('cubeD');
+  const cubeE = document.getElementById('cubeE');
+  const cubeF = document.getElementById('cubeF');
+  const cubeG = document.getElementById('cubeG');
+  const cubeH = document.getElementById('cubeH');
+
+  const iceCubeSprites = [
+    // Four touching cubes in each of two neat layers. Each cube later melts independently.
+    {el:cubeA, x:101, row:0, angle:-0.5, targetX:105, targetAngle:-10, phase:0.1, meltBias:0.00},
+    {el:cubeB, x:171, row:0, angle: 0.4, targetX:144, targetAngle:  8, phase:0.8, meltBias:0.03},
+    {el:cubeC, x:241, row:0, angle:-0.4, targetX:183, targetAngle: -6, phase:1.5, meltBias:0.06},
+    {el:cubeD, x:311, row:0, angle: 0.5, targetX:222, targetAngle: 10, phase:2.2, meltBias:0.09},
+    {el:cubeE, x:101, row:1, angle: 0.4, targetX:261, targetAngle: -8, phase:2.9, meltBias:0.12},
+    {el:cubeF, x:171, row:1, angle:-0.4, targetX:300, targetAngle:  7, phase:3.6, meltBias:0.15},
+    {el:cubeG, x:241, row:1, angle: 0.4, targetX:339, targetAngle: -9, phase:4.3, meltBias:0.18},
+    {el:cubeH, x:311, row:1, angle:-0.5, targetX:378, targetAngle: 11, phase:5.0, meltBias:0.21}
+  ];
+
+  const particleBoxG = document.getElementById('particleBox');
+
+  const curvePaths = {
+    solid:document.getElementById('curveSolid'),
+    melting:document.getElementById('curveMelting'),
+    liquid:document.getElementById('curveLiquid'),
+    boiling:document.getElementById('curveBoiling'),
+    gas:document.getElementById('curveGas')
+  };
+  const livePoint = document.getElementById('livePoint');
+  const yLabels = document.getElementById('yLabels');
+  const activeGraphLabel = document.getElementById('activeGraphLabel');
+  const graphGrid = document.getElementById('graphGrid');
+  const graphStageTicks = document.getElementById('graphStageTicks');
+
+  const endOverlay = document.getElementById('endOverlay');
+  const overlayResetBtn = document.getElementById('overlayResetBtn');
+
+  const stages = {
+    solid:document.getElementById('stageSolid'),
+    melting:document.getElementById('stageMelting'),
+    liquid:document.getElementById('stageLiquid'),
+    boiling:document.getElementById('stageBoiling'),
+    gas:document.getElementById('stageGas')
+  };
+
+  const graph = {x0:70, y0:282, w:800, h:226};
+  let minT = -50, maxT = 125;
+  const maxTemp = 150;
+  const thermometerGaugeMax = 125;
+  let maxGraphTime = 100;
+
+  let running = true;
+  let last = performance.now();
+  let sim, particles;
+  const particleRadius = 11;
+  // Edge-to-edge gaps: gap between particle edges = 2/3 radius; wall clearance from particle edge = 1/2 radius.
+  const particleGap = particleRadius * (2/3);
+  const particleWallGap = particleRadius / 2;
+  const particleCentreSpacing = particleRadius * 2 + particleGap;
+  const baseParticleBoxSize = particleRadius * 6 + particleGap * 2 + particleWallGap * 2;
+  const baseParticleCentreX = 216;
+  const baseParticleCentreY = 144.5;
+
+  const THERMAL_RATES = {
+    solidHeating: 5.8,
+    meltingProgress: 0.17,
+    liquidHeating: 7.4,
+    boilingProgress: 0.095,
+    gasHeating: 13.0
+  };
+
+  const STAGE_INFO = {
+    solid: {
+      state:'Solid', colour:'#3d8cff',
+      energy:'Increasing vibration of particles',
+      motion:'Particles vibrate in fixed positions',
+      mode:'(Rising)', label:'Solid warming'
+    },
+    melting: {
+      state:'Solid + Liquid', colour:'#26d7d9',
+      energy:'Breaking attractions between particles',
+      motion:'Some particles break free and start sliding',
+      mode:'(Temperature constant)', label:'Melting (0°C)'
+    },
+    liquid: {
+      state:'Liquid', colour:'#a9dc22',
+      energy:'Increasing kinetic energy of particles',
+      motion:'Particles slide past each other',
+      mode:'(Rising)', label:'Liquid warming'
+    },
+    boiling: {
+      state:'Liquid + Gas', colour:'#ff9e27',
+      energy:'Separating particles into gas',
+      motion:'Particles separate into gas',
+      mode:'(Temperature constant)', label:'Boiling (100°C)'
+    },
+    gas: {
+      state:'Gas', colour:'#ff4a43',
+      energy:'Increasing kinetic energy of gas particles',
+      motion:'Particles move rapidly in all directions',
+      mode:'(Rising)', label:'Gas warming'
+    },
+    ended: {
+      state:'Ended', colour:'var(--red)',
+      energy:'Thermometer popped at 150°C',
+      motion:'Thermometer has popped',
+      mode:'(Stopped)', label:'150°C: thermometer pops'
+    }
+  };
+
+  function getStageInfo(){
+    return sim.exploded ? STAGE_INFO.ended : STAGE_INFO[sim.stage];
+  }
+
+  function reset(){
+    maxGraphTime = 100;
+    sim = {
+      time:0,
+      temp:-10,
+      stage:'solid',
+      melt:0,
+      boil:0,
+      exploded:false,
+      graph:[{t:0,temp:-10,stage:'solid'}],
+      explosionStart:0,
+      breakParticles:[],
+      label:'',
+      dye:[]
+    };
+
+    particles = [];
+    sim.dye = Array.from({length:34}, (_,i)=>({
+      x:138,
+      y:539,
+      vx:(Math.random()*2-1)*5.5,
+      vy:-Math.random()*8-2,
+      r:2+Math.random()*3,
+      delay:Math.random()*0.25
+    }));
+    sim.breakParticles = Array.from({length:42}, (_,i)=>({
+      x:138, y:300,
+      vx:(Math.random()*2-1)*(2.5+Math.random()*5.5),
+      vy:(Math.random()*2-1)*(2.0+Math.random()*5.0)-1.5,
+      r:1.2+Math.random()*2.8,
+      life:0.65+Math.random()*0.75,
+      kind:i%4
+    }));
+    const sx = baseParticleCentreX, sy = baseParticleCentreY, spacing = particleCentreSpacing;
+    for(let r=0;r<3;r++){
+      for(let c=0;c<3;c++){
+        particles.push({
+          homeX:sx + (c-1)*spacing,
+          homeY:sy + (r-1)*spacing,
+          x:sx + (c-1)*spacing,
+          y:sy + (r-1)*spacing,
+          vx:(Math.random()*2-1)*1.5,
+          vy:(Math.random()*2-1)*1.5,
+          r:particleRadius,
+          seed:Math.random()*10000,
+          angle:Math.random()*Math.PI
+        });
+      }
+    }
+    running = true;
+    last = performance.now();
+    pauseBtn.textContent = 'Pause';
+    if(endOverlay) endOverlay.style.display='none';
+    sim.label = '';
+    activeGraphLabel.textContent = '';
+    updateAll(0);
+  }
+
+  function updateScale(){
+    const needed = Math.max(125, Math.ceil((sim.temp+20)/50)*50);
+    maxT = Math.min(400, needed);
+    drawGrid();
+  }
+
+  function tempToY(t){
+    const p = (t-minT)/(maxT-minT);
+    return graph.y0 - p*graph.h;
+  }
+
+  function updateXScale(){
+    if(sim.time > maxGraphTime * 0.90){
+      while(sim.time > maxGraphTime * 0.90){
+        maxGraphTime *= 1.5;
+      }
+      drawGrid();
+    }
+  }
+
+  function timeToX(t){
+    return graph.x0 + Math.min(1,t/maxGraphTime)*graph.w;
+  }
+
+  function drawGrid(){
+    graphGrid.innerHTML = '';
+    yLabels.innerHTML = '';
+
+    const yVals = maxT <= 150 ? [-50,0,100] : [-50,0,100,200,300,400].filter(v=>v<=maxT);
+    for(const val of yVals){
+      const y=tempToY(val);
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',graph.x0); line.setAttribute('x2',graph.x0+graph.w);
+      line.setAttribute('y1',y); line.setAttribute('y2',y);
+      line.setAttribute('stroke','rgba(180,210,245,.22)');
+      line.setAttribute('stroke-dasharray','5 5');
+      graphGrid.appendChild(line);
+
+      const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x',graph.x0-14); txt.setAttribute('y',y+6);
+      txt.setAttribute('text-anchor','end');
+      txt.setAttribute('fill', val===-10 ? '#58a4ff' : '#fff');
+      txt.setAttribute('font-size','18');
+      txt.textContent=val;
+      yLabels.appendChild(txt);
+    }
+
+    for(let i=0;i<=8;i++){
+      const x=graph.x0+i*graph.w/8;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',x); line.setAttribute('x2',x);
+      line.setAttribute('y1',56); line.setAttribute('y2',graph.y0);
+      line.setAttribute('stroke','rgba(180,210,245,.18)');
+      line.setAttribute('stroke-dasharray','5 5');
+      graphGrid.appendChild(line);
+
+    }
+  }
+
+  function drawStageTransitionTicks(){
+    graphStageTicks.innerHTML = '';
+    const orderedStages = ['solid','melting','liquid','boiling','gas'];
+    const shortLabels = {
+      solid:'Solid',
+      melting:'Solid + Liquid',
+      liquid:'Liquid',
+      boiling:'Liquid + Gas',
+      gas:'Gas'
+    };
+
+    for(const stage of orderedStages){
+      const point = sim.graph.find(p => p.stage === stage);
+      if(!point) continue;
+
+      const x = timeToX(point.t);
+      const colour = STAGE_INFO[stage].colour;
+      const tick = document.createElementNS('http://www.w3.org/2000/svg','line');
+      tick.setAttribute('x1',x); tick.setAttribute('x2',x);
+      tick.setAttribute('y1',graph.y0); tick.setAttribute('y2',graph.y0+10);
+      tick.setAttribute('stroke',colour);
+      tick.setAttribute('stroke-width','3');
+      graphStageTicks.appendChild(tick);
+
+      const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+      label.setAttribute('x',x);
+      label.setAttribute('y',graph.y0+27);
+      label.setAttribute('fill',colour);
+      label.setAttribute('font-size','13');
+      label.setAttribute('font-weight','800');
+      label.setAttribute('text-anchor', stage === 'solid' ? 'start' : stage === 'gas' ? 'end' : 'middle');
+      label.textContent = shortLabels[stage];
+      graphStageTicks.appendChild(label);
+    }
+  }
+
+  function graphPath(points){
+    if(points.length<1) return '';
+    let d=`M ${timeToX(points[0].t).toFixed(1)} ${tempToY(points[0].temp).toFixed(1)}`;
+    for(let i=1;i<points.length;i++){
+      d += ` L ${timeToX(points[i].t).toFixed(1)} ${tempToY(points[i].temp).toFixed(1)}`;
+    }
+    return d;
+  }
+
+  function currentLabel(){
+    if(sim.stage==='melting' && sim.melt<=0.01) return '';
+    if(sim.stage==='boiling' && sim.boil<=0.01) return '';
+    return getStageInfo().label;
+  }
+
+  function step(dt){
+    if(sim.exploded) return;
+    const f = Number(flameSlider.value)/100;
+    const heat = f*1.45;
+    const timeRate = 0.33 + f*1.55;
+    sim.time += dt*timeRate;
+
+    if(f < 0.002){
+      addGraphPoint();
+      return;
+    }
+
+    if(sim.stage==='solid'){
+      sim.temp += dt*heat*THERMAL_RATES.solidHeating;
+      if(sim.temp>=0){
+        sim.temp=0;
+        sim.stage='melting';
+      }
+    } else if(sim.stage==='melting'){
+      sim.temp=0;
+      sim.melt += dt*heat*THERMAL_RATES.meltingProgress;
+      if(sim.melt>=1){
+        sim.melt=1;
+        sim.stage='liquid';
+      }
+    } else if(sim.stage==='liquid'){
+      sim.temp += dt*heat*THERMAL_RATES.liquidHeating;
+      if(sim.temp>=100){
+        sim.temp=100;
+        sim.stage='boiling';
+      }
+    } else if(sim.stage==='boiling'){
+      sim.temp=100;
+      sim.boil += dt*heat*THERMAL_RATES.boilingProgress;
+      if(sim.boil>=1){
+        sim.boil=1;
+        sim.stage='gas';
+      }
+    } else if(sim.stage==='gas'){
+      sim.temp += dt*heat*THERMAL_RATES.gasHeating;
+      if(sim.temp>=maxTemp){
+        sim.temp=maxTemp;
+        sim.exploded=true;
+        sim.explosionStart=performance.now();
+        running=false;
+        pauseBtn.textContent='Resume';
+        setTimeout(()=>{ endOverlay.style.display='flex'; }, 2400);
+      }
+    }
+    addGraphPoint();
+  }
+
+  function addGraphPoint(){
+    const last = sim.graph[sim.graph.length-1];
+    if(!last || sim.time-last.t>0.45 || Math.abs(sim.temp-last.temp)>1.5){
+      sim.graph.push({t:sim.time,temp:sim.temp,stage:sim.stage});
+    }
+  }
+
+
+  function setCube(cube, x, y, angle, scale, opacity, scaleY = scale){
+    cube.setAttribute(
+      'transform',
+      `translate(${x} ${y}) rotate(${angle} 42 42) translate(42 42) scale(${scale} ${scaleY}) translate(-42 -42)`
+    );
+    cube.setAttribute('opacity', opacity);
+  }
+
+  function clamp(value, min, max){
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function smoothstep(value){
+    const t = clamp(value, 0, 1);
+    return t*t*(3-2*t);
+  }
+
+  const ICE_BASE_SCALE = 1.0;
+  const ICE_STEP_X = 70;
+  const ICE_STEP_Y = 76;
+  const ICE_BOTTOM_Y = 558;
+  const ICE_SOLID_TOP_Y = ICE_BOTTOM_Y - 2*ICE_STEP_Y;
+  const MELT_WATER_FINAL_Y = 505;
+  const ICE_FINAL_SCALE = 0.16;
+
+  function cubeScaleAtProgress(cube, progress){
+    const local = clamp((progress - cube.meltBias) / (1 - cube.meltBias), 0, 1);
+    return ICE_BASE_SCALE + (ICE_FINAL_SCALE - ICE_BASE_SCALE) * smoothstep(local);
+  }
+
+  function remainingIceVolumeFraction(progress){
+    let total = 0;
+    for(const cube of iceCubeSprites){
+      const s = cubeScaleAtProgress(cube, progress) / ICE_BASE_SCALE;
+      total += s*s*s;
+    }
+    return total / iceCubeSprites.length;
+  }
+
+  function meltWaterSurfaceY(progress){
+    const meltedFraction = 1 - remainingIceVolumeFraction(progress);
+    return ICE_BOTTOM_Y + (MELT_WATER_FINAL_Y - ICE_BOTTOM_Y) * meltedFraction;
+  }
+
+  function updateIceCubesIndividually(waterY){
+    const p = sim.melt;
+
+    if(sim.stage === 'solid'){
+      for(const c of iceCubeSprites){
+        const y = ICE_SOLID_TOP_Y + c.row * ICE_STEP_Y;
+        setCube(c.el, c.x, y, c.angle, ICE_BASE_SCALE, 1);
+      }
+      return;
+    }
+
+    if(sim.stage === 'melting'){
+      const release = smoothstep((p - 0.10) / 0.42);
+      const lineUp = smoothstep((p - 0.28) / 0.58);
+
+      iceCubeSprites.forEach((c, index)=>{
+        const scale = cubeScaleAtProgress(c, p);
+        const initialY = ICE_SOLID_TOP_Y + c.row * ICE_STEP_Y;
+
+        // Once meltwater forms, each cube can slide/tumble independently. Its visible
+        // top remains at the liquid surface while most of the cube sits below it.
+        const visibleTopInset = 7 * scale;
+        const floatingY = waterY - visibleTopInset;
+        const xDrift = Math.sin(p*7 + c.phase) * (4 + 4*lineUp) * (1-p);
+        const desiredX = c.x + (c.targetX - c.x) * lineUp + xDrift;
+        const desiredY = initialY + (floatingY - initialY) * release;
+        const tumble = Math.sin(p*10 + c.phase) * (3 + 8*release) * (1-p);
+        const angle = c.angle + (c.targetAngle - c.angle) * lineUp + tumble;
+        const opacity = clamp(1 - smoothstep((p - 0.84 - c.meltBias*0.08) / 0.16), 0, 1);
+
+        // The clipPath is a final safeguard; this clamp keeps the cube body comfortably
+        // inside the narrowing beaker walls during sideways movement and rotation.
+        const half = 42*scale;
+        const safeX = clamp(desiredX, 96 - 42 + half, 410 - 42 - half);
+        setCube(c.el, safeX, desiredY, angle, scale, opacity, scale*0.96);
+      });
+      return;
+    }
+
+    for(const c of iceCubeSprites){
+      setCube(c.el, c.targetX, waterY, c.targetAngle, ICE_FINAL_SCALE, 0, ICE_FINAL_SCALE*0.9);
+    }
+  }
+
+  function updateBreakEffect(elapsed){
+    popGroup.innerHTML='';
+    popGroup.setAttribute('opacity', elapsed < 1.7 ? '1' : '0');
+    if(elapsed >= 1.7) return;
+
+    for(const p of sim.breakParticles){
+      const age = elapsed;
+      if(age > p.life) continue;
+      const x = p.x + p.vx*age*20;
+      const y = p.y + p.vy*age*20 + 52*age*age;
+      const opacity = Math.max(0,1-age/p.life);
+      const node=document.createElementNS('http://www.w3.org/2000/svg', p.kind===0 ? 'path' : 'circle');
+      if(p.kind===0){
+        node.setAttribute('d',`M${x-3} ${y+2} L${x+2} ${y-4} L${x+5} ${y+3} Z`);
+        node.setAttribute('fill','#e8f7ff');
+      }else{
+        node.setAttribute('cx',x); node.setAttribute('cy',y); node.setAttribute('r',p.r);
+        node.setAttribute('fill',p.kind===1 ? '#ffffff' : (p.kind===2 ? '#bde8ff' : '#ff4a43'));
+      }
+      node.setAttribute('opacity',opacity);
+      popGroup.appendChild(node);
+    }
+  }
+
+  function updateDye(){
+    dyeGroup.innerHTML = '';
+    if(!sim.exploded) {
+      dyeGroup.setAttribute('opacity','0');
+      return;
+    }
+    dyeGroup.setAttribute('opacity','1');
+    for(const d of sim.dye){
+      d.vy += 0.28;
+      d.x += d.vx;
+      d.y += d.vy;
+      if(d.y > 620){
+        d.y = 620;
+        d.vy *= -0.12;
+        d.vx *= 0.75;
+      }
+      if(d.x < 20 || d.x > 500) d.vx *= -0.6;
+
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx', d.x);
+      c.setAttribute('cy', d.y);
+      c.setAttribute('r', d.r);
+      c.setAttribute('fill', '#ff1d1d');
+      c.setAttribute('opacity', '0.86');
+      dyeGroup.appendChild(c);
+    }
+  }
+
+  function updateApparatus(){
+    const f = Number(flameSlider.value)/100;
+    const flicker = Math.sin(performance.now()/90)*4*f;
+    flame.setAttribute('transform',`translate(${flicker-4} 16) translate(260 527) scale(${0.50+f*0.68}) translate(-260 -527)`);
+    flame.setAttribute('opacity',f<.02 ? .15 : 1);
+
+    const yAtMinus10 = 524;
+    const yAt125 = 122;
+    const gaugeTemp = Math.min(sim.temp, thermometerGaugeMax);
+    const thermY = yAtMinus10 - ((gaugeTemp + 10) / (thermometerGaugeMax + 10)) * (yAtMinus10 - yAt125);
+
+    // The red column is split across the two physical halves of the thermometer.
+    thermoFillLower.setAttribute('y2', Math.max(300, Math.min(yAtMinus10, thermY)));
+    if(thermY < 300){
+      thermoFillUpper.setAttribute('y1', 300);
+      thermoFillUpper.setAttribute('y2', Math.max(yAt125, thermY));
+      thermoFillUpper.setAttribute('opacity','1');
+    }else{
+      thermoFillUpper.setAttribute('y1',300);
+      thermoFillUpper.setAttribute('y2',300);
+      thermoFillUpper.setAttribute('opacity','0');
+    }
+
+    thermoText.textContent = sim.exploded ? '150°C' : `${Math.round(sim.temp)}°C`;
+    thermoText.setAttribute('x','72');
+    thermoText.setAttribute('y', Math.max(110, Math.min(526, thermY + 4)));
+
+    const overRange = Math.max(0, Math.min(1, (sim.temp - thermometerGaugeMax) / (maxTemp - thermometerGaugeMax)));
+    const shake = overRange > 0 && !sim.exploded
+      ? Math.sin(performance.now()/(42 - overRange*20)) * (1 + overRange*5)
+      : 0;
+    thermometerGroup.setAttribute('transform', `translate(${shake} 0)`);
+    thermoBulb.setAttribute('fill',sim.exploded ? '#8e1818' : '#df1919');
+
+    if(sim.exploded){
+      const elapsed = Math.max(0,(performance.now()-sim.explosionStart)/1000);
+      const fall = Math.min(1, elapsed/1.45);
+      const easedFall = fall*fall;
+      thermoUpperHalf.setAttribute('transform', `translate(${28*fall} ${205*easedFall}) rotate(${58*fall} 138 300)`);
+      thermoLowerHalf.setAttribute('transform','rotate(-3 138 300)');
+      thermoScale.setAttribute('opacity', String(Math.max(0,1-fall*1.25)));
+      updateBreakEffect(elapsed);
+    }else{
+      thermoUpperHalf.removeAttribute('transform');
+      thermoLowerHalf.removeAttribute('transform');
+      thermoScale.setAttribute('opacity','1');
+      popGroup.setAttribute('opacity','0');
+      popGroup.innerHTML='';
+    }
+    updateDye();
+
+    const finalY = MELT_WATER_FINAL_Y;
+    let waterY, waterH;
+
+    if(sim.stage==='solid'){
+      // Solid warming: two layers of ice only; no liquid water is visible.
+      waterY = 558;
+    } else if(sim.stage==='melting'){
+      // Water level is derived from the volume lost by all eight ice cubes.
+      // It therefore begins at zero and rises continuously with no scripted jump.
+      waterY = meltWaterSurfaceY(sim.melt);
+    } else {
+      // After the last ice disappears, the liquid level changes only slightly.
+      waterY = finalY;
+    }
+
+    if(sim.stage==='boiling'){
+      waterY = finalY + sim.boil*124;
+    }
+    if(sim.stage==='gas'){
+      // The gas-warming stage begins only after the liquid water has boiled away.
+      waterY = 558;
+    }
+
+    waterH = 558 - waterY;
+    water.setAttribute('d', `M80 ${waterY} H440 V545 C418 585 88 585 66 545 V${waterY} Z`);
+    waterSurface.setAttribute('cy',waterY);
+    waterSurface.setAttribute('opacity', sim.stage==='solid' || waterH<=8 ? '0' : '.76');
+
+    updateIceCubesIndividually(waterY);
+
+    drawBubbles(waterY,waterH);
+    drawSteam(waterY);
+  }
+
+
+  function drawBubbles(waterY,waterH){
+    bubbles.innerHTML='';
+    if(sim.stage!=='boiling' && sim.stage!=='gas') return;
+    const t=performance.now()/1000;
+    const count = sim.stage==='boiling' ? Math.floor(8+sim.boil*22) : 8;
+    for(let i=0;i<count;i++){
+      const x=120+(i*37%245)+Math.sin(t*1.8+i)*8;
+      const y=Math.max(waterY+10, 552-((i*23+t*44)%Math.max(24,waterH)));
+      const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx',x); c.setAttribute('cy',y);
+      c.setAttribute('r',3+(i%5));
+      c.setAttribute('fill','none');
+      c.setAttribute('stroke','#eaffff');
+      c.setAttribute('stroke-width','2');
+      c.setAttribute('opacity','.78');
+      bubbles.appendChild(c);
+    }
+  }
+
+  function drawSteam(waterY){
+    steam.innerHTML='';
+    if(sim.stage!=='boiling' && sim.stage!=='gas') return;
+    const t=performance.now()/1000;
+    const count = sim.stage==='boiling' ? Math.floor(4+sim.boil*8) : 14;
+    for(let i=0;i<count;i++){
+      const x=142+(i*31%230);
+      const y=waterY-8-((t*28+i*21)%145);
+      const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+      p.setAttribute('d',`M${x} ${y+28} C${x-18} ${y+14}, ${x+19} ${y}, ${x} ${y-28}`);
+      p.setAttribute('fill','none');
+      p.setAttribute('stroke','#d7e7f4');
+      p.setAttribute('stroke-width','4');
+      p.setAttribute('opacity','.22');
+      steam.appendChild(p);
+    }
+  }
+
+
+  function resolveParticleCollisions(boxX, boxY, boxW, boxH){
+    for(let iter=0; iter<2; iter++){
+      for(let i=0; i<particles.length; i++){
+        for(let j=i+1; j<particles.length; j++){
+          const a = particles[i];
+          const b = particles[j];
+          let dx = b.x - a.x;
+          let dy = b.y - a.y;
+          let dist = Math.hypot(dx, dy);
+          const minDist = a.r + b.r;
+
+          if(dist < 0.001){
+            dx = Math.random() - 0.5;
+            dy = Math.random() - 0.5;
+            dist = Math.hypot(dx, dy);
+          }
+
+          if(dist < minDist){
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const overlap = (minDist - dist) / 2;
+
+            a.x -= nx * overlap;
+            a.y -= ny * overlap;
+            b.x += nx * overlap;
+            b.y += ny * overlap;
+
+            // Exchange velocity components along the collision normal.
+            const avn = a.vx * nx + a.vy * ny;
+            const bvn = b.vx * nx + b.vy * ny;
+            const impulse = bvn - avn;
+            a.vx += impulse * nx;
+            a.vy += impulse * ny;
+            b.vx -= impulse * nx;
+            b.vy -= impulse * ny;
+
+            // Keep particles inside the container after separation.
+            a.x = Math.max(boxX+a.r+particleWallGap, Math.min(boxX+boxW-a.r-particleWallGap, a.x));
+            a.y = Math.max(boxY+a.r+particleWallGap, Math.min(boxY+boxH-a.r-particleWallGap, a.y));
+            b.x = Math.max(boxX+b.r+particleWallGap, Math.min(boxX+boxW-b.r-particleWallGap, b.x));
+            b.y = Math.max(boxY+b.r+particleWallGap, Math.min(boxY+boxH-b.r-particleWallGap, b.y));
+          }
+        }
+      }
+    }
+  }
+
+  function clampParticleToBox(p, boxX, boxY, boxW, boxH){
+    const minX = boxX + p.r + particleWallGap;
+    const maxX = boxX + boxW - p.r - particleWallGap;
+    const minY = boxY + p.r + particleWallGap;
+    const maxY = boxY + boxH - p.r - particleWallGap;
+
+    if(p.x < minX){ p.x = minX; p.vx = Math.abs(p.vx); }
+    if(p.x > maxX){ p.x = maxX; p.vx = -Math.abs(p.vx); }
+    if(p.y < minY){ p.y = minY; p.vy = Math.abs(p.vy); }
+    if(p.y > maxY){ p.y = maxY; p.vy = -Math.abs(p.vy); }
+  }
+
+  function jitterAndMoveParticle(p, dt, targetSpeed, jitterX, jitterY, boxX, boxY, boxW, boxH){
+    p.vx += (Math.random()*2-1)*jitterX;
+    p.vy += (Math.random()*2-1)*jitterY;
+
+    const speed = Math.hypot(p.vx,p.vy) || 1;
+    if(speed > targetSpeed){
+      p.vx = p.vx/speed*targetSpeed;
+      p.vy = p.vy/speed*targetSpeed;
+    }
+
+    p.x += p.vx*dt*60;
+    p.y += p.vy*dt*60;
+    clampParticleToBox(p, boxX, boxY, boxW, boxH);
+  }
+
+  function updateParticles(dt){
+    const outerX = 10, outerY = 10, outerW = 560, outerH = 270;
+    const verticalMargin = 10;
+    const leftStop = outerX + 5;
+    const textX = 432;
+    const rightStop = textX - 10;
+    const centreX = 216;
+    const maxBoxW = 2 * Math.min(centreX - leftStop, rightStop - centreX);
+    const maxBoxH = outerH - verticalMargin*2;
+    const baseW = baseParticleBoxSize + 20, baseH = baseParticleBoxSize + 20;
+    const centreY = outerY + outerH/2;
+    let boxW = baseW, boxH = baseH;
+
+    // During boiling the particle container expands only slightly.
+    // It reaches at most 150% of its original size while water is still present.
+    // After all water has boiled away, gas expansion continues from that same size.
+    const boilingEndW = Math.min(maxBoxW, baseW * 1.50);
+    const boilingEndH = Math.min(maxBoxH, baseH * 1.50);
+
+    if(sim.stage==='boiling'){
+      const boilP = Math.max(0, Math.min(1, sim.boil));
+      boxW = baseW + (boilingEndW - baseW) * boilP;
+      boxH = baseH + (boilingEndH - baseH) * boilP;
+    } else if(sim.stage==='gas'){
+      const gasP = Math.max(0, Math.min(1, (sim.temp - 100) / (maxTemp - 100)));
+      boxW = boilingEndW + (maxBoxW - boilingEndW) * gasP;
+      boxH = boilingEndH + (maxBoxH - boilingEndH) * gasP;
+    }
+
+    boxW = Math.min(maxBoxW, boxW);
+    boxH = Math.min(maxBoxH, boxH);
+    let boxX = centreX - boxW/2;
+    let boxY = centreY - boxH/2;
+    boxX = Math.max(leftStop, Math.min(rightStop - boxW, boxX));
+    boxY = Math.max(outerY + verticalMargin, Math.min(outerY + outerH - verticalMargin - boxH, boxY));
+
+    const tempNorm=(sim.temp+10)/410;
+
+    for(const p of particles){
+      if(sim.stage==='solid'){
+        // Solid particles vibrate in fixed positions. Heating increases vibration frequency, not amplitude.
+        const amp = 1.2;
+        const freq = 380 - Math.min(260,tempNorm*380);
+        const phase = Math.sin(performance.now()/freq + p.seed) * amp;
+        p.x = p.homeX + Math.cos(p.angle) * phase;
+        p.y = p.homeY + Math.sin(p.angle) * phase;
+      } else if(sim.stage==='melting'){
+        let amp = 1.4;
+        if(sim.melt >= 0.50) amp = 1.6;
+        if(sim.melt >= 0.70) amp = 1.8;
+        if(sim.melt >= 0.90) amp = 2.2;
+        if(sim.melt < 0.98){
+          const freq = 130;
+          const phase = Math.sin(performance.now()/freq + p.seed) * amp;
+          p.x = p.homeX + Math.cos(p.angle) * phase;
+          p.y = p.homeY + Math.sin(p.angle) * phase;
+        } else {
+          jitterAndMoveParticle(p, dt, 1.25, 0.22, 0.22, boxX, boxY, boxW, boxH);
+        }
+      } else {
+        const verticalLimited = boxH >= maxBoxH - 0.01;
+        const target = sim.stage==='liquid' ? 1.35 : sim.stage==='boiling' ? (verticalLimited ? 5.8+sim.boil*2.4 : 4.0+sim.boil*2.0) : 7.8+(sim.temp-100)*.02;
+        const jitterX = sim.stage==='liquid' ? 0.22 : (verticalLimited ? 0.70 : 0.48);
+        const jitterY = sim.stage==='liquid' ? 0.22 : 0.34;
+        jitterAndMoveParticle(p, dt, target, jitterX, jitterY, boxX, boxY, boxW, boxH);
+
+        if(sim.stage==='liquid'){
+          p.x += ((boxX + boxW/2)-p.x)*.0025;
+          p.y += ((boxY + boxH/2)-p.y)*.002;
+        }
+      }
+    }
+
+    if(sim.stage==='liquid' || sim.stage==='boiling' || sim.stage==='gas' || (sim.stage==='melting' && sim.melt>=0.98)){
+      resolveParticleCollisions(boxX, boxY, boxW, boxH);
+    }
+
+    drawParticles(boxX,boxY,boxW,boxH);
+  }
+
+
+  function drawParticles(x,y,w,h){
+    particleBoxG.innerHTML='';
+    const box=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    box.setAttribute('x',x); box.setAttribute('y',y);
+    box.setAttribute('width',w); box.setAttribute('height',h);
+    box.setAttribute('rx','18');
+    box.setAttribute('fill','rgba(5,18,34,.78)');
+    box.setAttribute('stroke','#a9d6ff');
+    box.setAttribute('stroke-width','3');
+    particleBoxG.appendChild(box);
+
+    for(const p of particles){
+      const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx',p.x); c.setAttribute('cy',p.y);
+      c.setAttribute('r',p.r);
+      c.setAttribute('fill','url(#particleGrad)');
+      c.setAttribute('stroke','#8fc8ff');
+      c.setAttribute('stroke-width','1.5');
+      c.setAttribute('filter','url(#particleGlow)');
+      particleBoxG.appendChild(c);
+    }
+
+    const info = currentParticleInfo();
+    const labelX = 395;
+    const labelY = 72;
+
+    const stateText = document.createElementNS('http://www.w3.org/2000/svg','text');
+    stateText.setAttribute('x', labelX);
+    stateText.setAttribute('y', labelY);
+    stateText.setAttribute('fill', '#ffffff');
+    stateText.setAttribute('font-size', '21');
+    stateText.setAttribute('font-weight', '900');
+    stateText.textContent = info.state.toUpperCase();
+    particleBoxG.appendChild(stateText);
+
+    const motionText = document.createElementNS('http://www.w3.org/2000/svg','text');
+    motionText.setAttribute('x', labelX);
+    motionText.setAttribute('y', labelY + 30);
+    motionText.setAttribute('fill', '#b8c5d8');
+    motionText.setAttribute('font-size', '15');
+    motionText.setAttribute('font-weight', '700');
+    const motionWords = info.motion.split(' ');
+    let line = '', dy = 0;
+    for(const word of motionWords){
+      const trial = line ? line + ' ' + word : word;
+      if(trial.length > 27 && line){
+        const tspan=document.createElementNS('http://www.w3.org/2000/svg','tspan');
+        tspan.setAttribute('x', labelX);
+        tspan.setAttribute('dy', dy === 0 ? '0' : '18');
+        tspan.textContent = line;
+        motionText.appendChild(tspan);
+        line = word;
+        dy += 18;
+      } else {
+        line = trial;
+      }
+    }
+    const tspan=document.createElementNS('http://www.w3.org/2000/svg','tspan');
+    tspan.setAttribute('x', labelX);
+    tspan.setAttribute('dy', dy === 0 ? '0' : '18');
+    tspan.textContent = line;
+    motionText.appendChild(tspan);
+    particleBoxG.appendChild(motionText);
+
+    const tempText = document.createElementNS('http://www.w3.org/2000/svg','text');
+    tempText.setAttribute('x', labelX);
+    tempText.setAttribute('y', labelY + 98);
+    tempText.setAttribute('fill', '#ffad32');
+    tempText.setAttribute('font-size', '21');
+    tempText.setAttribute('font-weight', '900');
+    tempText.textContent = `${Math.round(sim.temp)}°C`;
+    particleBoxG.appendChild(tempText);
+  }
+
+
+  function currentParticleInfo(){
+    const info = getStageInfo();
+    const volumeMessage = sim.temp >= 100 ? ' Gas Volume Increases.' : '';
+    return {state:info.state, motion:info.motion + volumeMessage};
+  }
+
+  function stagePath(points, stage){
+    let d='';
+    let drawing=false;
+    for(let i=0;i<points.length;i++){
+      const p=points[i];
+      const matches=p.stage===stage;
+      if(matches){
+        const x=timeToX(p.t), y=tempToY(p.temp);
+        if(!drawing){
+          const prev=i>0 ? points[i-1] : p;
+          d+=`M${timeToX(prev.t)} ${tempToY(prev.temp)} `;
+          drawing=true;
+        }
+        d+=`L${x} ${y} `;
+      }else{
+        drawing=false;
+      }
+    }
+    return d;
+  }
+
+  function updateGraph(){
+    updateXScale();
+    updateScale();
+    for(const stage of Object.keys(curvePaths)){
+      curvePaths[stage].setAttribute('d',stagePath(sim.graph,stage));
+    }
+    drawStageTransitionTicks();
+    const last=sim.graph[sim.graph.length-1];
+    const x=timeToX(last.t), y=tempToY(last.temp);
+    livePoint.setAttribute('cx',x); livePoint.setAttribute('cy',y);
+
+    const info=getStageInfo();
+    activeGraphLabel.textContent=info.state;
+    activeGraphLabel.setAttribute('fill',info.colour);
+    activeGraphLabel.setAttribute('x',Math.max(92,Math.min(780,x)));
+    activeGraphLabel.setAttribute('text-anchor', x>735 ? 'end' : 'middle');
+    activeGraphLabel.setAttribute('y',Math.min(276,y+30));
+  }
+
+  function updateReadouts(){
+    Object.values(stages).forEach(s=>s.classList.remove('active'));
+    if(!sim.exploded && stages[sim.stage]) stages[sim.stage].classList.add('active');
+    else if(sim.exploded) stages.gas.classList.add('active');
+  }
+
+  function updateAll(dt){
+    updateApparatus();
+    updateParticles(dt);
+    updateGraph();
+    updateReadouts();
+  }
+
+  function loop(now){
+    const dt=Math.min(.05,(now-last)/1000);
+    last=now;
+    if(running) step(dt);
+    updateAll(dt);
+    requestAnimationFrame(loop);
+  }
+
+  pauseBtn.addEventListener('click',()=>{
+    if(sim.exploded) return;
+    running=!running;
+    pauseBtn.textContent = running ? 'Pause' : 'Resume';
+  });
+
+  resetBtn.addEventListener('click',reset);
+  overlayResetBtn.addEventListener('click',reset);
+
+  reset();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
